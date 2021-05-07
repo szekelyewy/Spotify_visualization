@@ -2,10 +2,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
-from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.linear_model import LinearRegression, LogisticRegression, Lasso
 from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix
+from sklearn import tree
 
 # %% Adat beolvasás, tisztítás
 
@@ -99,45 +100,56 @@ y = model_df['explicit']
 
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, shuffle=True)
 
-# %% Logistic Regression
+# %% Model building
 
-log_model = LogisticRegression()
-log_model.fit(X_train, y_train)
-y_pred = log_model.predict(X_test)
-print(np.sqrt(mean_squared_error(y_test, y_pred)))
-conf_y_test = y_test.to_numpy(copy=True)
-confusion = confusion_matrix(conf_y_test, y_pred)
-print(confusion)
-fig, ax = plt.subplots(figsize=(8, 8))
-ax.imshow(confusion, cmap='BrBG_r')
-ax.grid(False)
-ax.xaxis.set(ticks=(0, 1), ticklabels=('Predicted 0s', 'Predicted 1s'))
-ax.yaxis.set(ticks=(0, 1), ticklabels=('Actual 0s', 'Actual 1s'))
-ax.set_ylim(1.5, -0.5)
-for i in range(2):
-    for j in range(2):
-        ax.text(j, i, confusion[i, j], ha='center', va='center', color='white')
-plt.title('Confusion Matrix of Predicted Explicity with Logistic Regression')
+
+def modeling(model):
+    log_model = model
+    log_model.fit(X_train, y_train)
+    y_pred = log_model.predict(X_test)
+    print(np.sqrt(mean_squared_error(y_test, y_pred)))
+    conf_y_test = y_test.to_numpy(copy=True)
+    confusion = confusion_matrix(conf_y_test, y_pred)
+    print(confusion)
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.imshow(confusion, cmap='BrBG_r')
+    ax.grid(False)
+    ax.xaxis.set(ticks=(0, 1), ticklabels=('Predicted 0s', 'Predicted 1s'))
+    ax.yaxis.set(ticks=(0, 1), ticklabels=('Actual 0s', 'Actual 1s'))
+    ax.set_ylim(1.5, -0.5)
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, confusion[i, j], ha='center', va='center', color='white')
+    plt.title('Confusion Matrix of Predicted Explicity')
+    plt.show()
+    print(model)
+    if model == 'DecisionTreeClassifier':
+        tree.plot_tree(model)
+        plt.show()
+
+modeling(LogisticRegression())
+modeling(LogisticRegression(penalty='l1', solver='liblinear'))
+modeling(tree.DecisionTreeClassifier(max_depth=9))
+
+# %% Decision Tree
+
+dec_tree = tree.DecisionTreeClassifier(max_depth=2)
+dec_tree.fit(X_train, y_train)
+y_pred = dec_tree.predict(X_test)
+tree.plot_tree(dec_tree)
 plt.show()
-
-# %% Lasso Regularization
-
-lasso = LogisticRegression(penalty='l1', solver='liblinear')
-lasso.fit(X_train, y_train)
-y_pred = lasso.predict(X_test)
 print(np.sqrt(mean_squared_error(y_test, y_pred)))
-conf_y_test = y_test.to_numpy(copy=True)
-confusion = confusion_matrix(conf_y_test, y_pred)
-print(confusion)
-fig, ax = plt.subplots(figsize=(8, 8))
-ax.imshow(confusion, cmap='BrBG_r')
-ax.grid(False)
-ax.xaxis.set(ticks=(0, 1), ticklabels=('Predicted 0s', 'Predicted 1s'))
-ax.yaxis.set(ticks=(0, 1), ticklabels=('Actual 0s', 'Actual 1s'))
-ax.set_ylim(1.5, -0.5)
-for i in range(2):
-    for j in range(2):
-        ax.text(j, i, confusion[i, j], ha='center', va='center', color='white', fontsize=13)
-plt.title('Confusion Matrix of Logistic Regression', fontsize=16)
-plt.show()
 
+
+# %% Pie chart
+
+pie_df = twenty['explicit'].astype('bool')
+pie_df_true = np.count_nonzero(pie_df)
+pie_df_false = np.size(pie_df) - np.count_nonzero(pie_df)
+pie_data = [pie_df_false, pie_df_true]
+labels = ['Not-Explicit', 'Explicit']
+fig1, ax1 = plt.subplots()
+ax1.pie(pie_data,  labels=labels, autopct='%1.1f%%', startangle=90)
+ax1.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+plt.show()
